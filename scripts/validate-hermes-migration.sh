@@ -48,6 +48,22 @@ grep -q 'Usage: make logs SVC=hermes' Makefile || {
   exit 1
 }
 
+grep -q 'TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}' docker-compose.yml
+grep -q 'TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}' docker-compose.yml
+grep -q 'TELEGRAM_ALLOWED_USERS: ${TELEGRAM_ALLOWED_USERS:-}' docker-compose.yml
+grep -q 'TELEGRAM_CHAT_ID=            # compatibility input' .env.example
+grep -q 'TELEGRAM_ALLOWED_USERS=      # optional; defaults to TELEGRAM_CHAT_ID when empty' .env.example
+
+grep -q 'export TELEGRAM_ALLOWED_USERS="$TELEGRAM_CHAT_ID"' services/hermes/entrypoint.sh || {
+  echo "TELEGRAM_CHAT_ID must map to TELEGRAM_ALLOWED_USERS when the allowlist is empty" >&2
+  exit 1
+}
+
+grep -q 'mcp_reload_confirm: true' services/hermes/templates/config.yaml
+grep -q 'destructive_slash_confirm: true' services/hermes/templates/config.yaml
+grep -q 'Approval voice: `bip? - <action>? \[Sim\] \[Nao\]`.' vault/BIP.md
+grep -q 'Approval voice: `bip? - <action>? \[Sim\] \[Nao\]`.' services/hermes/templates/BIP.md
+
 if grep -q 'docker.sock' docker-compose.yml; then
   echo "docker socket must not be mounted into Hermes" >&2
   exit 1
