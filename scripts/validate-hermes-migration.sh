@@ -41,3 +41,10 @@ grep -q 'source of truth for Bip identity' vault/CLAUDE.md
 grep -q 'provider-neutral identity' docs/ARCHITECTURE.md
 grep -q 'source. `vault/CLAUDE.md` remains as a compatibility pointer' docs/ARCHITECTURE.md
 grep -q 'generates runtime' docs/ARCHITECTURE.md
+
+if grep -Eq 'chown[[:space:]]+-R[[:space:]]+.*HERMES_HOME' services/hermes/entrypoint.sh; then
+  echo "Hermes startup must not recursively chown the persistent home on every boot" >&2
+  exit 1
+fi
+
+grep -q 'chown hermes:' services/hermes/entrypoint.sh
