@@ -20,3 +20,10 @@ fi
 grep -q 'cron_mode: deny' services/hermes/templates/config.yaml
 grep -q 'mode: manual' services/hermes/templates/config.yaml
 grep -q 'MCP_READONLY: "true"' docker-compose.yml
+
+if grep -Eq 'chown[[:space:]]+-R[[:space:]]+.*HERMES_HOME' services/hermes/entrypoint.sh; then
+  echo "Hermes startup must not recursively chown the persistent home on every boot" >&2
+  exit 1
+fi
+
+grep -q 'chown hermes:' services/hermes/entrypoint.sh
