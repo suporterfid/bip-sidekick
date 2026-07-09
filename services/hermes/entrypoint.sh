@@ -32,6 +32,10 @@ fi
 
 cp /opt/bip/templates/cron/daily-brief.md "$HERMES_HOME/cron/bip-daily-brief.md"
 
+if [ -n "${HERMES_HOME:-}" ] && id hermes >/dev/null 2>&1; then
+  find "$HERMES_HOME" ! -user hermes -exec chown hermes: {} +
+fi
+
 if [ -n "${TELEGRAM_CHAT_ID:-}" ] && [ -z "${TELEGRAM_ALLOWED_USERS:-}" ]; then
   export TELEGRAM_ALLOWED_USERS="$TELEGRAM_CHAT_ID"
 fi
