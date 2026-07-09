@@ -1,0 +1,135 @@
+# Solo Agent Stack — orchestration
+#
+# Services are grouped with COMPOSE PROFILES so you can bring the stack up in the
+# staged order from docs/ROADMAP.md instead of all at once:
+#
+#   core   → vault + google-mcp + brief-engine + telegram-bridge + agent
+#   gate   → (the gate lives inside telegram-bridge; profile adds the audit sink)
+#   openwa → WhatsApp read-only triage
+#
+# Bring up with the Makefile: `make up-core`, then `make up-gate`, then `make up-openwa`.
+
+name: bip-sidekick
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  vault:            # Obsidian markdown, git-synced to your devices
+  openwa_session:   # WhatsApp Web session data (treat as a secret)
+  audit:            # append-only audit log
+
+services:
+  # ── MEMORY ────────────────────────────────────────────────────────────────
+  vault-sync:
+    profiles: ["core"]
+    build: ./services/agent   # reuses a tiny alpine+git image; see Dockerfile
+    container_name: bip-vault-sync
+    command: ["/scripts/git-sync.sh"]
+    environment:
+      VAULT_GIT_REMOTE: ${VAULT_GIT_REMOTE}
+      VAULT_GIT_BRANCH: ${VAULT_GIT_BRANCH:-main}
+      GIT_SYNC_INTERVAL: ${GIT_SYNC_INTERVAL:-300}
+    volumes:
+      - vault:/vault
+      - ./scripts:/scripts:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp"]
+    networks: [internal]
+
+  # ── SENSES (read-only) ──────────────────────────────────────────────────────
+  google-mcp:
+    profiles: ["core"]
+    build: ./services/google-mcp
+    container_name: bip-google-mcp
+    environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REFRESH_TOKEN: ${GOOGLE_REFRESH_TOKEN}
+      # Read-only scopes ONLY. See docs/SECURITY.md before widening these.
+      GOOGLE_SCOPES: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly"
+      MCP_TRANSPORT: "http"
+      MCP_PORT: "8081"
+    expose: ["8081"]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp"]
+    user: "10001:10001"
+    networks: [internal]
+
+  openwa:
+    profiles: ["openwa"]
+    # Point this at your fork's image, or build from a local checkout / submodule.
+    # build: ./services/openwa/OpenWA
+    image: ghcr.io/suporterfid/openwa:latest
+    container_name: bip-openwa
+    environment:
+      ENGINE_TYPE: "baileys"          # lighter than whatsapp-web.js (no Chromium)
+      MCP_ENABLED: "true"
+      MCP_READONLY: "true"            # triage only — no sends from the agent path
+      API_KEY: ${OPENWA_API_KEY}
+      WEBHOOK_URL: ""                 # not needed for read-only triage
+      DATABASE_TYPE: "sqlite"
+    volumes:
+      - openwa_session:/app/session   # QR/session state — sensitive
+    expose: ["3000"]
+    restart: unless-stopped
+    user: "10002:10002"
+    networks: [internal]
+
+  # ── BRAIN ───────────────────────────────────────────────────────────────────
+  agent:
+    profiles: ["core"]
+    build: ./services/agent
+    container_name: bip-agent
+    environment:
+      # Auth: an API key bills per-token. A Claude subscription (Max) token is for
+      # interactive use; see services/agent/README.md for the trade-off on headless runs.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      MCP_CONFIG: /mcp/.mcp.json
+    volumes:
+      - vault:/vault
+      - audit:/audit
+      - ./mcp:/mcp:ro
+    depends_on: [google-mcp]
+    restart: unless-stopped
+    networks: [internal]
+
+  # ── DAILY BRIEF (cron) ────────────────────────────────────────────────────────
+  brief-engine:
+    profiles: ["core"]
+    build: ./services/brief-engine
+    container_name: bip-brief-engine
+    environment:
+      BRIEF_CRON: ${BRIEF_CRON:-0 6 * * *}   # 06:00 daily by default
+      TZ: ${TZ:-America/Sao_Paulo}
+      AGENT_URL: "http://agent:8080"
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+    volumes:
+      - vault:/vault:ro
+    depends_on: [agent]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp"]
+    networks: [internal]
+
+  # ── COMMAND INBOX + APPROVAL GATE ─────────────────────────────────────────────
+  telegram-bridge:
+    profiles: ["core"]
+    build: ./services/telegram-bridge
+    container_name: bip-telegram-bridge
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}     # allowlist: only this chat is honored
+      AGENT_URL: "http://agent:8080"
+      AUDIT_LOG: /audit/actions.jsonl
+      GATE_MODE: ${GATE_MODE:-strict}           # strict = every 'act' needs a tap
+    volumes:
+      - audit:/audit
+    restart: unless-stopped
+    networks: [internal]
+    # This is the ONLY service that needs outbound internet for Telegram.

@@ -1,0 +1,7 @@
+.env
+*.log
+vault/daily/*.md
+!vault/daily/.gitkeep
+**/node_modules/
+**/__pycache__/
+services/openwa/OpenWA/

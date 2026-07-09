@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "google": {
+      "type": "http",
+      "url": "http://google-mcp:8081/mcp/",
+      "note": "Calendar + Gmail, read-only scopes only"
+    },
+    "whatsapp": {
+      "type": "http",
+      "url": "http://openwa:3000/mcp",
+      "headers": { "Authorization": "Bearer ${OPENWA_API_KEY}" },
+      "note": "OpenWA, MCP_READONLY=true — triage only"
+    }
+  }
+}
