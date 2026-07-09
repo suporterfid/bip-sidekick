@@ -16,6 +16,38 @@ for script in $(git ls-files '*.sh'); do
   fi
 done
 
+bash -n services/hermes/entrypoint.sh
+bash -n scripts/validate-hermes-migration.sh
+
+grep -q '^  hermes:$' docker-compose.yml
+grep -q '^    profiles: \["core"\]' docker-compose.yml
+grep -q '^    build: ./services/hermes' docker-compose.yml
+grep -q '^    container_name: bip-hermes' docker-compose.yml
+grep -q 'command: \["gateway", "run"\]' docker-compose.yml
+grep -q 'depends_on: \[google-mcp\]' docker-compose.yml
+grep -q '^  vault-sync:$' docker-compose.yml
+grep -q '^  google-mcp:$' docker-compose.yml
+
+if grep -Eq '^  (agent|telegram-bridge|brief-engine):$' docker-compose.yml; then
+  echo "superseded runtime services must not be active in docker-compose.yml" >&2
+  exit 1
+fi
+
+grep -A2 '^up-core:' Makefile | grep -q -- '--profile core up -d --build' || {
+  echo "make up-core must use the core profile" >&2
+  exit 1
+}
+
+grep -A2 '^up-gate:' Makefile | grep -q -- '--profile core up -d --build hermes' || {
+  echo "make up-gate must refresh the Hermes service" >&2
+  exit 1
+}
+
+grep -q 'Usage: make logs SVC=hermes' Makefile || {
+  echo "make logs must document SVC=hermes" >&2
+  exit 1
+}
+
 if grep -q 'docker.sock' docker-compose.yml; then
   echo "docker socket must not be mounted into Hermes" >&2
   exit 1
