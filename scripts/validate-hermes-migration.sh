@@ -5,6 +5,8 @@ test -f services/hermes/Dockerfile
 test -f services/hermes/entrypoint.sh
 test -f services/hermes/templates/config.yaml
 test -f services/hermes/templates/BIP.md
+test -f services/hermes/hooks/audit-jsonl.py
+test -f docs/AUDIT.md
 test -f vault/BIP.md
 test -f vault/CLAUDE.md
 
@@ -18,6 +20,7 @@ done
 
 bash -n services/hermes/entrypoint.sh
 bash -n scripts/validate-hermes-migration.sh
+python3 -m py_compile services/hermes/hooks/audit-jsonl.py
 
 grep -q '^  hermes:$' docker-compose.yml
 grep -q '^    profiles: \["core"\]' docker-compose.yml
@@ -45,6 +48,11 @@ grep -A2 '^up-gate:' Makefile | grep -q -- '--profile core up -d --build hermes'
 
 grep -q 'Usage: make logs SVC=hermes' Makefile || {
   echo "make logs must document SVC=hermes" >&2
+  exit 1
+}
+
+grep -A2 '^audit:' Makefile | grep -q '/audit/actions.jsonl' || {
+  echo "make audit must tail /audit/actions.jsonl" >&2
   exit 1
 }
 
@@ -77,6 +85,30 @@ fi
 grep -q 'cron_mode: deny' services/hermes/templates/config.yaml
 grep -q 'mode: manual' services/hermes/templates/config.yaml
 grep -q 'MCP_READONLY: "true"' docker-compose.yml
+
+grep -q 'hooks:' services/hermes/templates/config.yaml
+grep -q 'pre_approval_request:' services/hermes/templates/config.yaml
+grep -q 'post_approval_response:' services/hermes/templates/config.yaml
+grep -q 'post_tool_call:' services/hermes/templates/config.yaml
+grep -q 'command: /opt/bip/hooks/audit-jsonl.py' services/hermes/templates/config.yaml
+grep -q 'COPY hooks/ /opt/bip/hooks/' services/hermes/Dockerfile
+grep -q 'chmod +x /opt/bip/entrypoint.sh /opt/bip/hooks/audit-jsonl.py' services/hermes/Dockerfile
+grep -q 'touch /audit/actions.jsonl' services/hermes/entrypoint.sh
+grep -q 'chown hermes: /audit /audit/actions.jsonl' services/hermes/entrypoint.sh
+grep -q 'chmod 700 /audit' services/hermes/entrypoint.sh
+grep -q 'chmod 600 /audit/actions.jsonl' services/hermes/entrypoint.sh
+grep -q 'HERMES_HOME", "/opt/data"' services/hermes/entrypoint.sh
+grep -q 'yaml.safe_load' services/hermes/entrypoint.sh
+grep -q 'post_tool_call' services/hermes/entrypoint.sh
+grep -q '_record_approval(event, command)' services/hermes/entrypoint.sh
+grep -q 'proposal' services/hermes/hooks/audit-jsonl.py
+grep -q 'decision' services/hermes/hooks/audit-jsonl.py
+grep -q 'execution' services/hermes/hooks/audit-jsonl.py
+grep -q 'approval_message_id' services/hermes/hooks/audit-jsonl.py
+grep -q 'unsupported_fields' docs/AUDIT.md
+grep -q 'approval_message_id' docs/AUDIT.md
+grep -q 'make audit' docs/AUDIT.md
+grep -q 'actions.jsonl' docs/SECURITY.md
 
 grep -q 'cp /opt/bip/templates/BIP.md /vault/BIP.md' services/hermes/entrypoint.sh
 grep -q 'cat /vault/BIP.md' services/hermes/entrypoint.sh

@@ -12,6 +12,7 @@ changes the world is a gated exception.
 4. **Cron cannot act.** Scheduled briefs run with cron action behavior denied.
 5. **Audit before hands.** Real sends/deploys/spend stay disabled until
    `/audit/actions.jsonl` can record proposal, approval, denial, execution, and outcome.
+   See `docs/AUDIT.md` for the Hermes hook mirror and current unsupported fields.
 
 ## Shell Posture
 
