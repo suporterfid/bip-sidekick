@@ -1,64 +1,47 @@
 # Security & Governance
 
-The design is **read-only-first**: the agent's default reach is observation. Anything
-that changes the world is a gated exception. This mirrors the Harness Worker-Agent
-governance pattern (sandboxing, scoped credentials, policy checkpoints, audit trail) —
-applied as a **pattern at solo scale**, without adopting an enterprise platform.
+Bip is read-only first. Hermes may reason, draft, summarize, and propose. Anything that
+changes the world is a gated exception.
 
-## The four rules
+## Rules
 
-1. **Read-only by default.**
-   Senses (`google-mcp`, `openwa`) hold read scopes only. There is no code path from a
-   sense to a mutation. Widening a scope requires editing `.env` *and* recording an ADR.
+1. **Read-only senses.** Google MCP uses Gmail and Calendar read-only scopes. OpenWA runs
+   with `MCP_READONLY=true`.
+2. **Telegram allowlist.** Only `TELEGRAM_ALLOWED_USERS` can interact with the bot.
+3. **Manual approvals.** Dangerous interactive tools use Hermes manual approval mode.
+4. **Cron cannot act.** Scheduled briefs run with cron action behavior denied.
+5. **Audit before hands.** Real sends/deploys/spend stay disabled until
+   `/audit/actions.jsonl` can record proposal, approval, denial, execution, and outcome.
 
-2. **Scoped keys per tool.**
-   Each MCP server / integration gets its own least-privilege credential. Compromise of
-   one credential does not grant the others. Nothing shares a "god key."
+## Shell Posture
 
-3. **Human tap for anything that acts.**
-   Send / deploy / spend are "hands." They are unreachable except through a Telegram
-   approval. `GATE_MODE=strict` means *every* act is confirmed individually.
+Shell is allowed inside the Hermes container because Bip needs operational flexibility.
+The default deployment keeps the blast radius bounded:
 
-4. **Append-only audit.**
-   Every proposed, approved, and executed action is written to `audit/actions.jsonl`
-   (who / what / when / outcome) and mirrored into the vault. Silent action is a bug.
+- No Docker socket mount.
+- No broad host filesystem bind mount.
+- No host SSH key mount.
+- No published Hermes port by default.
+- `/vault`, `/audit`, and `hermes_home` are the intended writable surfaces.
 
-## Credential handling
+Host-level deployment actions belong in Stage 5 as explicit hands with least-privilege
+credentials, manual approval, and audit.
 
-- Secrets live in `.env` (gitignored) or Docker secrets — never in the image or the repo.
-- Containers run **non-root** where the base image allows (`user:` set in compose).
-- Filesystems are `read_only: true` with a `tmpfs` for scratch where feasible.
-- The `openwa_session` volume and `GOOGLE_REFRESH_TOKEN` are the crown jewels — losing
-  the session lets someone impersonate your WhatsApp; losing the refresh token grants
-  read access to mail/calendar. Back them up encrypted; rotate on any suspicion.
+## Credentials
 
-## Attack surface (STRIDE-lite)
+- Secrets live in `.env` or Docker secrets, never in the repo.
+- `GOOGLE_REFRESH_TOKEN` and `openwa_session` are sensitive and should be encrypted in
+  backups.
+- Widening Google scopes requires an ADR.
+- WhatsApp automation can trigger account risk; use a spare number.
 
-| Threat | Vector | Mitigation |
-|---|---|---|
-| **Spoofing** | Someone messages the bot | Chat allowlist: only `TELEGRAM_CHAT_ID` is honored |
-| **Tampering** | Altered audit log | Append-only file; back up off-host; consider hash-chaining |
-| **Repudiation** | "The agent did X on its own" | Every act logged with the approving message id |
-| **Info disclosure** | Leaked mail/WhatsApp content | Read scopes minimal; vault repo is **private**; TLS to Google |
-| **DoS** | Message flood | Bridge rate-limits; only one chat honored anyway |
-| **Elevation** | Sense → act path | Architecturally absent: senses are read-only, gate holds act creds |
+## Before Real Accounts
 
-## <a name="whatsapp"></a>WhatsApp-specific notes
-
-- OpenWA's Baileys/whatsapp-web.js engines **emulate WhatsApp Web** on a real number.
-  This carries a genuine account-ban risk. Use a **spare number** you can afford to lose,
-  keep traffic human-like, and never bulk-message.
-- This stack uses WhatsApp **read-only for triage**. It is *not* a customer-facing bot.
-  Meta's 2026 policy restricting general-purpose AI chatbots on the Business API is about
-  outbound automated chat; personal read-only triage is a different use, but review
-  current terms before you point it anywhere client-facing.
-
-## Before you point it at real accounts
-
-- [ ] `.env` is gitignored and contains no secrets in git history
-- [ ] Google refresh token minted with **read-only** scopes, verified
-- [ ] Telegram chat allowlist set and tested (a message from another account is ignored)
-- [ ] `GATE_MODE=strict`; confirmed an "act" blocks until you reply
-- [ ] Audit log writing and backed up off-host
-- [ ] OpenWA on a spare number, `MCP_READONLY=true` confirmed
-- [ ] Vault git repo is **private**
+- [ ] `.env` is gitignored and contains no committed secrets.
+- [ ] Google scopes are read-only.
+- [ ] Telegram allowlist is tested.
+- [ ] Hermes manual approvals are verified.
+- [ ] Cron deny behavior is verified.
+- [ ] `/audit/actions.jsonl` posture is known.
+- [ ] OpenWA uses a spare number and `MCP_READONLY=true`.
+- [ ] Vault git repo is private.

@@ -10,12 +10,12 @@ help: ## Show this help
 bootstrap: ## One-shot VPS setup (Docker, vault git remote)
 	./scripts/bootstrap.sh
 
-up-core: ## Stage 1-2: senses + memory + brief + command inbox (read-only value)
+up-core: ## Stage 1-2: Hermes + senses + memory + daily brief
 	$(COMPOSE) --profile core up -d --build
 
-up-gate: ## Stage 3: ensure the approval gate + audit sink are live
-	$(COMPOSE) --profile core up -d --build telegram-bridge
-	@echo ">> Gate active. Test: propose an 'act' and confirm it blocks until you reply."
+up-gate: ## Stage 3: verify Hermes manual approvals and audit posture
+	$(COMPOSE) --profile core up -d --build hermes
+	@echo ">> Gate target active. Verify approvals.mode=manual and approvals.cron_mode=deny in Hermes."
 
 up-openwa: ## Stage 4: WhatsApp read-only triage (scan QR with a SPARE number)
 	$(COMPOSE) --profile openwa up -d --build
@@ -24,11 +24,11 @@ up-openwa: ## Stage 4: WhatsApp read-only triage (scan QR with a SPARE number)
 down: ## Stop everything
 	$(COMPOSE) --profile core --profile openwa down
 
-logs: ## Tail logs. Usage: make logs SVC=agent
+logs: ## Tail logs. Usage: make logs SVC=hermes
 	$(COMPOSE) logs -f $(SVC)
 
 ps: ## Show running services
 	$(COMPOSE) ps
 
 audit: ## Tail the append-only action log
-	docker exec bip-telegram-bridge tail -f /audit/actions.jsonl
+	docker exec bip-hermes sh -lc 'touch /audit/actions.jsonl && tail -f /audit/actions.jsonl'

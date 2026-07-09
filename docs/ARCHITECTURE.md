@@ -1,148 +1,114 @@
 # Architecture
 
-## Deployment topology (single VPS)
+## Deployment Topology
 
 ```mermaid
 flowchart LR
     subgraph internet["Internet"]
         TGAPI["Telegram Bot API"]
-        GOOG["Google APIs<br/>(readonly scopes)"]
-        WA["WhatsApp<br/>(via Baileys)"]
-        GHREPO["Private git repo<br/>(vault sync)"]
+        GOOG["Google APIs readonly"]
+        WA["WhatsApp via Baileys"]
+        GHREPO["Private vault git repo"]
     end
 
-    subgraph host["VPS — Docker host, one internal network"]
+    subgraph host["VPS - Docker host, one internal network"]
         direction TB
-        BR["telegram-bridge<br/>(only outbound egress)"]
-        AG["agent (Claude Code)"]
-        BE["brief-engine (cron)"]
+        H["hermes gateway"]
         GM["google-mcp"]
         OW["openwa"]
         VS["vault-sync"]
-        V[("vault volume<br/>.md files")]
-        AU[("audit volume<br/>actions.jsonl")]
-        SESS[("openwa_session<br/>volume")]
+        V[("vault volume")]
+        HH[("hermes_home volume")]
+        AU[("audit volume")]
+        SESS[("openwa_session volume")]
     end
 
-    BR <--> TGAPI
+    H <--> TGAPI
     GM --> GOOG
     OW <--> WA
     VS <--> GHREPO
 
-    BR --> AG
-    BE --> AG
-    AG --> GM
-    AG --> OW
-    AG --- V
-    AG --- AU
-    BE --- V
+    H --> GM
+    H --> OW
+    H --- V
+    H --- HH
+    H --- AU
     VS --- V
     OW --- SESS
 ```
 
-**Networking notes**
-- One internal Docker bridge network. Services address each other by name.
-- `telegram-bridge` is the only service that *needs* general outbound internet
-  (to reach the Telegram Bot API). `google-mcp` and `vault-sync` reach specific
-  Google/git endpoints; `openwa` maintains the WhatsApp Web connection.
-- Nothing is published to the host's public interface by default. There is no inbound
-  web surface unless you add a reverse proxy for OpenWA's admin UI (optional, protect it).
+All services live on one internal Docker network. No Hermes dashboard or API port is
+published by default. `openwa` is only started through the `openwa` profile.
 
----
-
-## Data flow: the daily brief (the core value)
+## Daily Brief Flow
 
 ```mermaid
 sequenceDiagram
-    participant Cron as brief-engine (cron)
-    participant Agent as agent (Claude Code)
-    participant G as google-mcp (readonly)
-    participant WA as openwa (readonly)
-    participant Vault as vault (.md)
-    participant TG as telegram-bridge
+    participant Cron as Hermes cron
+    participant H as Hermes
+    participant G as google-mcp
+    participant WA as openwa
+    participant Vault as vault
+    participant TG as Telegram
 
-    Cron->>Agent: run daily-brief prompt
-    Agent->>G: list today's calendar events
-    Agent->>G: list unread / flagged mail
-    Agent->>WA: summarize last N WhatsApp messages
-    Agent->>Vault: read BACKLOG.md + STATUS.md
-    Agent->>Agent: reason → pick ONE next action + why
-    Agent->>Vault: write daily/YYYY-MM-DD.md (the brief)
-    Agent->>TG: push the brief to you
-    Note over Agent,TG: No 'act' happened. Pure read + suggest.
+    Cron->>H: run Bip daily brief prompt
+    H->>Vault: read BIP, STATUS, BACKLOG, daily notes
+    H->>G: read calendar and Gmail
+    H->>WA: read WhatsApp context when enabled
+    H->>H: choose one next action
+    H->>Vault: write daily/YYYY-MM-DD.md
+    H->>TG: send brief
+    Note over Cron,H: cron_mode=deny; no actions from scheduled jobs
 ```
 
-## Data flow: an action that changes the world (gated)
+## Gated Action Flow
 
 ```mermaid
 sequenceDiagram
-    participant You as You (Telegram)
-    participant TG as telegram-bridge (gate)
-    participant Agent as agent
-    participant Audit as audit log
-    participant Tool as Gmail send / deploy
+    participant You as You in Telegram
+    participant H as Hermes
+    participant Audit as audit/actions.jsonl
+    participant Tool as future hand
 
-    You->>TG: "reply to client X and confirm Friday"
-    TG->>Agent: run task
-    Agent->>Agent: draft the reply
-    Agent->>TG: PROPOSE send (draft attached)
-    TG->>Audit: log PROPOSED (who/what/when)
-    TG->>You: "🤖 bip? — approve send? [Sim] [Não]"  ← BLOCKED here
-    You->>TG: Yes
-    TG->>Audit: log APPROVED
-    TG->>Tool: execute
-    Tool-->>TG: result
-    TG->>Audit: log EXECUTED + outcome
-    TG->>You: done ✅
+    You->>H: ask for an action
+    H->>H: draft proposal
+    H->>You: request manual approval
+    H->>Audit: record proposed action
+    You->>H: approve or deny
+    H->>Audit: record decision
+    H->>Tool: execute only when approved
+    Tool-->>H: outcome
+    H->>Audit: record outcome
 ```
 
-The gate is the single choke point: **no "act" tool is reachable except through a
-Telegram approval.** See [SECURITY.md](SECURITY.md).
+Real send/deploy/spend hands are not attached during Stages 1-4. Stage 5 adds each hand
+separately only when it can be approval-gated and audited.
 
----
+## Component Detail
 
-## Component detail
+### hermes
 
-### agent (the brain)
-Claude Code running headless on the VPS, orchestrated by the Hermes framework in a
-persistent session (tmux for interactive attach; a small HTTP shim on `:8080` for the
-brief-engine and bridge to invoke tasks). Reads MCP servers registered in
-`mcp/.mcp.json`. Writes to the vault and the audit log. **Never** holds send/deploy
-credentials directly — those live behind the gate.
+Hermes is Bip's runtime: gateway, Telegram surface, cron runner, MCP client, session
+state, shell context, and approval layer. It is packaged by `services/hermes/Dockerfile`
+and stores runtime state in `hermes_home`.
 
-### google-mcp (senses: Calendar + Gmail)
-A self-hosted Google Workspace MCP server. On a headless VPS you do **not** get the
-claude.ai managed connectors, so you run this with your own OAuth2 credentials and a
-refresh token minted with **read-only scopes only** (`gmail.readonly`,
-`calendar.readonly`). Widening scopes is a deliberate, documented decision (add an ADR).
+### vault
 
-### openwa (senses: WhatsApp triage)
-Your fork of OpenWA, run with `ENGINE_TYPE=baileys` (websocket, no headless Chromium →
-lighter on a small VPS) and `MCP_READONLY=true`. The agent can *read and summarize*
-messages; it cannot send. Same account-ban caveat as any WhatsApp-Web-based gateway —
-use a spare number. See [SECURITY.md](SECURITY.md#whatsapp).
+The vault is the durable shared memory. `vault/BIP.md` is Bip's provider-neutral identity
+source. `vault/CLAUDE.md` remains as a compatibility pointer. Hermes generates runtime
+`SOUL.md` from `BIP.md` on startup.
 
-### vault (memory)
-An Obsidian vault = a folder of `.md` files. On the VPS the agent operates on the files
-directly (no Obsidian GUI needed; the Local REST API/MCP plugin requires the desktop app
-and is for your laptop/phone side). `vault-sync` pushes/pulls a **private** git repo on
-an interval so Obsidian on your devices stays current. Seeded files: `STATUS.md`,
-`BACKLOG.md`, `CLAUDE.md`, and `daily/`.
+### google-mcp
 
-### telegram-bridge (command inbox + gate)
-Single entry point from your phone, with a **chat allowlist** (only your `TELEGRAM_CHAT_ID`
-is honored). Holds pending-approval state, executes approved actions, and writes the
-append-only audit log.
+Google MCP exposes Calendar and Gmail with read-only scopes only. Widening scopes requires
+a new ADR and a Stage 5 hand with approval and audit.
 
-### brief-engine (daily job)
-A cron container that, on schedule, invokes the agent's daily-brief prompt and makes sure
-the result reaches both the vault and your Telegram.
+### openwa
 
----
+OpenWA is optional WhatsApp read-only triage. It runs with `ENGINE_TYPE=baileys` and
+`MCP_READONLY=true`. Use a spare number because WhatsApp Web automation carries ban risk.
 
-## Why single-host
+### audit
 
-At solo scale, one VPS with Docker Compose is the right granularity: cheap, easy to
-reason about, trivially backed up (it's markdown + a couple of volumes). If you ever
-outgrow it, the seams to split are obvious (senses, brain, gate), but **don't
-pre-split** — that's the enterprise complexity this design exists to avoid.
+`/audit/actions.jsonl` is the Bip governance contract. Hermes logs may be useful, but real
+hands stay disabled until proposed, approved, denied, and executed events can be audited.

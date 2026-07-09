@@ -1,0 +1,48 @@
+approvals:
+  mode: manual
+  timeout: 60
+  cron_mode: deny
+  mcp_reload_confirm: true
+  destructive_slash_confirm: true
+
+tool_loop_guardrails:
+  hard_stop_enabled: true
+  hard_stop_after:
+    exact_failure: 5
+    idempotent_no_progress: 5
+
+terminal:
+  env_passthrough:
+    - TZ
+
+mcp_servers:
+  google:
+    url: "http://google-mcp:8081/mcp"
+    enabled: true
+    timeout: 120
+    connect_timeout: 60
+    supports_parallel_tool_calls: false
+    tools:
+      exclude:
+        - send_email
+        - send_message
+        - create_event
+        - update_event
+        - delete_event
+      resources: true
+      prompts: false
+
+  whatsapp:
+    url: "http://openwa:3000/mcp"
+    enabled: true
+    timeout: 120
+    connect_timeout: 60
+    supports_parallel_tool_calls: false
+    tools:
+      exclude:
+        - send_message
+        - send
+        - reply
+        - delete_message
+      resources: true
+      prompts: false

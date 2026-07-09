@@ -1,9 +1,7 @@
-# brief-engine — daily 'what's next'
+# brief-engine - superseded runtime stub
 
-A cron container that invokes the agent's daily-brief prompt on schedule (BRIEF_CRON)
-and ensures the result reaches both the vault and Telegram.
+> Superseded by `services/hermes/` in the Hermes-native runtime. This directory is kept
+> only as historical context while the migration settles.
 
-## TODO (Stage 2)
-- [ ] cron entry from BRIEF_CRON in TZ
-- [ ] call agent /run with the daily-brief prompt
-- [ ] verify daily/YYYY-MM-DD.md written and pushed to Telegram
+The original plan used this service to schedule the daily brief through a custom cron
+container. Hermes cron now owns the daily brief schedule.

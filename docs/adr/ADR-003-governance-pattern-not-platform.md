@@ -1,18 +1,24 @@
-# ADR-003: Borrow Harness governance pattern, not the Harness platform
+# ADR-003 - Borrow governance pattern, not a governance platform
 
 **Status:** Accepted
 **Date:** 2026-07-09
+**Superseded-by:** ADR-004 for the concrete runtime implementation
 
 ## Context
-We want production-grade guardrails (sandboxing, scoped creds, audit) for an agent that
-can eventually send/deploy. Harness.io offers this at enterprise scale, but adopting it
-is a large, costly platform migration for a solo operator on GitHub Actions + Dokploy.
+
+We want production-grade guardrails such as sandboxing, scoped credentials, approvals, and
+audit for an agent that can eventually send or deploy. Enterprise governance platforms are
+too large for this solo Docker Compose deployment.
 
 ## Decision
-Implement the *pattern* — read-only default, scoped keys per tool, human tap for acts,
-append-only audit — as lightweight logic in `telegram-bridge`, without adopting Harness.
+
+Use the pattern: read-only default, scoped keys per tool, human approval for actions, and
+append-only audit. The first implementation expected a small custom bridge. ADR-004 moves
+the concrete runtime to Hermes while preserving the same governance intent.
 
 ## Consequences
-- (+) Strong guardrails at near-zero cost/complexity.
-- (+) No platform migration; keeps existing CI/CD.
-- (−) We maintain the gate ourselves (it's small). Revisit if the stack grows to a team.
+
+- The project keeps a lightweight governance model.
+- Runtime implementation can change as long as the read-only, approval, and audit contract
+  remains intact.
+- Real hands still require explicit approval and audit before they are attached.

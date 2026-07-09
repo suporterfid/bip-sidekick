@@ -1,79 +1,57 @@
-# Roadmap — staged build order
+# Roadmap - Hermes-native staged build order
 
-Each stage **ships and stops on its own** with a Definition of Done (DoD). Do not start
-the next stage until the current DoD is met. Resist adding boxes not listed here (see
-Non-Goals in the README).
+Each stage ships and stops on its own. Do not attach mutation tools until the approval and
+audit posture is proven.
 
----
+## Stage 1 - Hermes core runtime
 
-## Stage 1 — Telegram → agent bridge
-Single command inbox from your phone to the agent on the VPS.
+- Build `services/hermes/`.
+- Run Hermes through `make up-core`.
+- Enforce Telegram allowlist.
+- Mount `/vault`, `/audit`, and `hermes_home`.
 
-- Bring up `telegram-bridge` + `agent` (`make up-core` starts the whole core; you can
-  validate this piece first).
-- Chat allowlist enforced.
+**DoD:** Hermes starts from Docker Compose, reads `vault/BIP.md`, generates runtime
+`SOUL.md`, and responds through the allowed Telegram user.
 
-**DoD:** you send a message in Telegram and the agent runs it on the VPS and replies.
-A message from any other account is ignored.
+## Stage 2 - Daily brief
 
-_Est: ~½ day._
+- Configure Hermes cron from `BRIEF_CRON` and `TZ`.
+- Read Google MCP with read-only scopes.
+- Read `STATUS.md`, `BACKLOG.md`, and recent daily notes.
+- Write `vault/daily/YYYY-MM-DD.md`.
+- Send the same brief to Telegram.
 
----
+**DoD:** one useful brief lands in the vault and Telegram, with exactly one next action.
 
-## Stage 2 — Daily Brief Engine  ← the real win
-Reads Calendar + Gmail (read-only) + `BACKLOG.md`, returns the **one** next action with
-reasoning, writes it to today's Obsidian daily note, and pushes it to Telegram.
+## Stage 3 - Approvals and audit posture
 
-- `google-mcp` up with read-only scopes.
-- `brief-engine` cron wired to the brief prompt.
+- Confirm `approvals.mode: manual`.
+- Confirm `approvals.cron_mode: deny`.
+- Confirm dangerous interactive shell actions require approval where Hermes supports it.
+- Define or implement the `/audit/actions.jsonl` mirror.
 
-**DoD:** one correct brief lands in `vault/daily/YYYY-MM-DD.md` **and** in Telegram,
-drawn from your real calendar/inbox/backlog.
+**DoD:** a dangerous interactive action blocks for approval, cron cannot act, and the audit
+posture is documented.
 
-> **Stop here for a week and just use it.** This is where most of the value lives.
+## Stage 4 - OpenWA read-only triage
 
-_Est: ~1 day._
+- Start `make up-openwa`.
+- Confirm `MCP_READONLY=true`.
+- Fold recent WhatsApp context into the daily brief.
 
----
+**DoD:** WhatsApp context can influence the brief, but no WhatsApp sends are available.
 
-## Stage 3 — Approval + audit gate
-Any "act" tool requires a Telegram reply; every action appends to the audit log.
+## Stage 5 - Gated hands
 
-- `GATE_MODE=strict`.
-- Audit sink writing `actions.jsonl`.
+- Add each send/deploy/spend tool as its own issue.
+- Grant least-privilege credentials.
+- Require manual Telegram approval.
+- Mirror proposal, decision, execution, and outcome to audit.
 
-**DoD:** one blocked action (waits for your tap) and one approved action, both logged
-with the approving message id.
+**DoD:** a hand executes only after explicit approval and has enough audit detail to
+reconstruct the decision.
 
-_Est: ~1 day._
+## System Definition Of Done
 
----
-
-## Stage 4 — OpenWA read-only triage
-WhatsApp messages summarized into the daily brief.
-
-- `make up-openwa`, scan the QR with a **spare** number.
-- `MCP_READONLY=true` confirmed; `ENGINE_TYPE=baileys`.
-
-**DoD:** the agent reads your last N WhatsApp messages and folds a summary into the
-brief. It cannot send.
-
-_Est: ~½ day (plus QR/session setup)._
-
----
-
-## Stage 5 (optional, later) — Gated sends
-Agent drafts email/WhatsApp replies; they send **only** on your tap.
-
-**DoD:** a drafted reply is sent only after explicit approval, and the whole exchange is
-in the audit log.
-
----
-
-## Definition of Done — the whole system
-
-You wake up, open Telegram or Obsidian, and see **one prioritized action** drawn from
-your real calendar, inbox, and backlog — and **nothing ever acts without your tap.**
-
-That is the finish line. If it's met, the project is *done*. Add a sixth stage only
-deliberately, with its own DoD, after the first five have proven their worth in daily use.
+You wake up and see one prioritized action drawn from your real calendar, inbox, backlog,
+and optional WhatsApp context. Nothing changes the world without your tap.

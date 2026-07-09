@@ -1,15 +1,13 @@
-# google-mcp — Calendar + Gmail (READ-ONLY)
+# google-mcp - Calendar + Gmail read-only
 
-Self-hosted Google Workspace MCP server. On a headless VPS you don't get claude.ai's
-managed connectors, so run this with your own OAuth2 client + refresh token, minted with
-READ-ONLY scopes only:
-  - https://www.googleapis.com/auth/gmail.readonly
-  - https://www.googleapis.com/auth/calendar.readonly
+This service exposes Google Calendar and Gmail to Hermes over MCP on the internal Docker
+network.
 
-Use a maintained community Google Workspace MCP image, or implement a thin server.
-Widening scopes beyond read-only requires a new ADR (see docs/adr).
+Use an OAuth2 client and refresh token minted with read-only scopes only:
 
-## TODO (Stage 2)
-- [ ] Choose/build the MCP server; pin the image
-- [ ] Mint refresh token offline with read-only scopes
-- [ ] Expose MCP over http on :8081; confirm agent can list events + unread mail
+- `https://www.googleapis.com/auth/gmail.readonly`
+- `https://www.googleapis.com/auth/calendar.readonly`
+
+Widening scopes beyond read-only requires a new ADR and a Stage 5 hand with manual approval
+and audit. Hermes should only receive read/list/summarize tools from this service during
+Stages 1-4.
