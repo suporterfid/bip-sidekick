@@ -75,6 +75,13 @@ make logs SVC=openwa
 Stage 5 send/deploy/spend tools are tracked separately. If a hand cannot be approval-gated
 and audited, do not attach it.
 
+## Planning
+
+Long-lived future work is tracked in GitHub Issues, not only in local Markdown. Use the
+`Backlog item` issue form for new topics, follow the label taxonomy in
+`docs/GITHUB_BACKLOG.md`, and keep `vault/BACKLOG.md` as the short working shortlist for the
+human + agent loop.
+
 ## Repository Layout
 
 ```text

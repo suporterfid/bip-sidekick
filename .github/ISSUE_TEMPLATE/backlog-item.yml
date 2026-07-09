@@ -1,0 +1,79 @@
+name: Backlog item
+description: Capture a future topic, idea, or planned enhancement so it does not get lost.
+title: "[Backlog] "
+labels:
+  - backlog
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for ideas, future work, architectural follow-ups, and planned improvements.
+        Keep the title short and put the details below.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should we remember or eventually build?
+      placeholder: Add the future topic in one or two paragraphs.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the system does this mostly affect?
+      options:
+        - runtime
+        - briefing
+        - governance
+        - integrations
+        - docs
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this relative to the current roadmap?
+      options:
+        - high
+        - medium
+        - low
+    validations:
+      required: true
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort
+      description: Rough implementation size.
+      options:
+        - s
+        - m
+        - l
+    validations:
+      required: true
+  - type: textarea
+    id: value
+    attributes:
+      label: Why this matters
+      description: What value, risk reduction, or leverage does this create?
+      placeholder: Explain why this topic deserves space in the backlog.
+    validations:
+      required: true
+  - type: textarea
+    id: done_when
+    attributes:
+      label: Done when
+      description: What would make this item clearly complete?
+      placeholder: List a simple acceptance signal or outcome.
+    validations:
+      required: false
+  - type: input
+    id: related_docs
+    attributes:
+      label: Related docs or issues
+      description: Optional links to docs, ADRs, or existing issues.
+      placeholder: docs/ROADMAP.md, #10
+    validations:
+      required: false
