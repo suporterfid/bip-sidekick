@@ -83,6 +83,29 @@ grep -q 'cat /vault/BIP.md' services/hermes/entrypoint.sh
 grep -q 'SOUL.md - generated for Hermes runtime' services/hermes/entrypoint.sh
 grep -q 'Edit /vault/BIP.md, not this file' services/hermes/entrypoint.sh
 grep -q 'Hermes memories are optional scratch and do not replace /vault' services/hermes/entrypoint.sh
+grep -q 'BRIEF_CRON="${BRIEF_CRON:-0 6 \* \* \*}"' services/hermes/entrypoint.sh
+grep -q '"$HERMES_HOME/cron/output"' services/hermes/entrypoint.sh
+grep -q 'hermes cron remove "$job_id"' services/hermes/entrypoint.sh
+grep -q 'hermes cron create "$BRIEF_CRON"' services/hermes/entrypoint.sh
+grep -q 'cron_jobs="$(hermes cron list --all)"' services/hermes/entrypoint.sh
+grep -q 'printf.*cron_jobs' services/hermes/entrypoint.sh
+grep -q 'Name:      bip-daily-brief' services/hermes/entrypoint.sh
+grep -q -- '--name bip-daily-brief' services/hermes/entrypoint.sh
+grep -q -- '--deliver telegram' services/hermes/entrypoint.sh
+grep -q -- '--workdir /vault' services/hermes/entrypoint.sh
+awk '
+  /find "\$HERMES_HOME" ! -user hermes/ { chown_line = NR }
+  /hermes cron create "\$BRIEF_CRON"/ { cron_line = NR }
+  END { exit !(chown_line && cron_line && chown_line < cron_line) }
+' services/hermes/entrypoint.sh
+grep -q 'TZ: ${TZ:-America/Sao_Paulo}' docker-compose.yml
+grep -q 'BRIEF_CRON: ${BRIEF_CRON:-0 6 \* \* \*}' docker-compose.yml
+grep -q 'Write the brief to `/vault/daily/YYYY-MM-DD.md`' services/hermes/templates/cron/daily-brief.md
+grep -q 'send the same brief to Telegram' services/hermes/templates/cron/daily-brief.md
+grep -q 'Do not send email, send WhatsApp messages, deploy, spend money, delete data, or mutate' services/hermes/templates/cron/daily-brief.md
+grep -q 'Startup registers a native Hermes cron job named `bip-daily-brief`' services/hermes/README.md
+grep -q 'The schedule comes' services/hermes/README.md
+grep -q 'from `BRIEF_CRON` and is interpreted with `TZ`' services/hermes/README.md
 
 grep -q 'provider-neutral operating instructions now live in `BIP.md`' vault/CLAUDE.md
 grep -q 'source of truth for Bip identity' vault/CLAUDE.md

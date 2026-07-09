@@ -2,9 +2,10 @@
 set -eu
 
 HERMES_HOME="${HERMES_HOME:-/opt/data}"
+BRIEF_CRON="${BRIEF_CRON:-0 6 * * *}"
 export HERMES_HOME
 
-mkdir -p "$HERMES_HOME" "$HERMES_HOME/cron" "$HERMES_HOME/logs" /vault/daily /audit
+mkdir -p "$HERMES_HOME" "$HERMES_HOME/cron" "$HERMES_HOME/cron/output" "$HERMES_HOME/logs" /vault/daily /audit
 
 if [ ! -f /vault/BIP.md ]; then
   cp /opt/bip/templates/BIP.md /vault/BIP.md
@@ -35,6 +36,26 @@ cp /opt/bip/templates/cron/daily-brief.md "$HERMES_HOME/cron/bip-daily-brief.md"
 if [ -n "${HERMES_HOME:-}" ] && id hermes >/dev/null 2>&1; then
   find "$HERMES_HOME" ! -user hermes -exec chown hermes: {} +
 fi
+
+brief_prompt="$(cat "$HERMES_HOME/cron/bip-daily-brief.md")"
+existing_brief_jobs="$(
+  hermes cron list --all 2>/dev/null |
+    awk '
+      $1 ~ /^[0-9a-f][0-9a-f]*$/ { job_id = $1 }
+      $1 == "Name:" && $2 == "bip-daily-brief" { print job_id }
+    '
+)"
+
+for job_id in $existing_brief_jobs; do
+  hermes cron remove "$job_id"
+done
+
+hermes cron create "$BRIEF_CRON" "$brief_prompt" \
+  --name bip-daily-brief \
+  --deliver telegram \
+  --workdir /vault
+cron_jobs="$(hermes cron list --all)"
+printf '%s\n' "$cron_jobs" | grep -q 'Name:      bip-daily-brief'
 
 if [ -n "${TELEGRAM_CHAT_ID:-}" ] && [ -z "${TELEGRAM_ALLOWED_USERS:-}" ]; then
   export TELEGRAM_ALLOWED_USERS="$TELEGRAM_CHAT_ID"
