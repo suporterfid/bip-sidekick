@@ -3,12 +3,18 @@
 Each stage ships and stops on its own. Do not attach mutation tools until the approval and
 audit posture is proven.
 
+The current repository shape is Hermes-native: `make up-core` starts Hermes, vault sync,
+and Google MCP; `make up-gate` refreshes Hermes for approval/audit checks; `make up-openwa`
+adds optional WhatsApp read-only triage. The roadmap below is still staged because each
+surface must be verified before real accounts or write-capable hands are attached.
+
 ## Stage 1 - Hermes core runtime
 
 - Build `services/hermes/`.
 - Run Hermes through `make up-core`.
 - Enforce Telegram allowlist.
 - Mount `/vault`, `/audit`, and `hermes_home`.
+- Keep the old `agent`, `telegram-bridge`, and `brief-engine` runtime paths inactive.
 
 **DoD:** Hermes starts from Docker Compose, reads `vault/BIP.md`, generates runtime
 `SOUL.md`, and responds through the allowed Telegram user.
@@ -28,7 +34,8 @@ audit posture is proven.
 - Confirm `approvals.mode: manual`.
 - Confirm `approvals.cron_mode: deny`.
 - Confirm dangerous interactive shell actions require approval where Hermes supports it.
-- Define or implement the `/audit/actions.jsonl` mirror.
+- Keep shell container-scoped as documented in `docs/SHELL.md`.
+- Keep the `/audit/actions.jsonl` hook mirror active and document unsupported fields.
 
 **DoD:** a dangerous interactive action blocks for approval, cron cannot act, and the audit
 posture is documented.
@@ -47,9 +54,20 @@ posture is documented.
 - Grant least-privilege credentials.
 - Require manual Telegram approval.
 - Mirror proposal, decision, execution, and outcome to audit.
+- Do not attach a hand if approval or audit correlation cannot be proven.
 
 **DoD:** a hand executes only after explicit approval and has enough audit detail to
 reconstruct the decision.
+
+## Validation Commands
+
+Run these before claiming the staged architecture is still intact:
+
+```bash
+bash scripts/validate-hermes-migration.sh
+sh scripts/validate-hermes-shell-scope.sh
+docker compose --profile core --profile openwa config
+```
 
 ## System Definition Of Done
 
