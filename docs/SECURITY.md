@@ -17,7 +17,8 @@ changes the world is a gated exception.
 ## Shell Posture
 
 Shell is allowed inside the Hermes container because Bip needs operational flexibility.
-The default deployment keeps the blast radius bounded:
+The default deployment keeps the blast radius bounded; see `docs/SHELL.md` for the
+container-scoped shell contract and validation target.
 
 - No Docker socket mount.
 - No broad host filesystem bind mount.

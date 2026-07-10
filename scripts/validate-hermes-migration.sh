@@ -7,6 +7,7 @@ test -f services/hermes/templates/config.yaml
 test -f services/hermes/templates/BIP.md
 test -f services/hermes/hooks/audit-jsonl.py
 test -f docs/AUDIT.md
+test -f docs/SHELL.md
 test -f vault/BIP.md
 test -f vault/CLAUDE.md
 
@@ -20,7 +21,9 @@ done
 
 bash -n services/hermes/entrypoint.sh
 bash -n scripts/validate-hermes-migration.sh
+bash -n scripts/validate-hermes-shell-scope.sh
 python3 -m py_compile services/hermes/hooks/audit-jsonl.py
+sh scripts/validate-hermes-shell-scope.sh
 
 grep -q '^  hermes:$' docker-compose.yml
 grep -q '^    profiles: \["core"\]' docker-compose.yml
@@ -109,6 +112,13 @@ grep -q 'unsupported_fields' docs/AUDIT.md
 grep -q 'approval_message_id' docs/AUDIT.md
 grep -q 'make audit' docs/AUDIT.md
 grep -q 'actions.jsonl' docs/SECURITY.md
+grep -q 'container-scoped shell' docs/SHELL.md
+grep -q 'No Docker socket mount' docs/SHELL.md
+grep -q 'No broad host filesystem bind mount' docs/SHELL.md
+grep -q 'Cron jobs must not use shell to send, deploy, spend, delete, or mutate' docs/SHELL.md
+grep -q 'manual approval' docs/SHELL.md
+grep -q 'docs/SHELL.md' docs/SECURITY.md
+grep -q 'docs/SHELL.md' services/hermes/README.md
 
 grep -q 'cp /opt/bip/templates/BIP.md /vault/BIP.md' services/hermes/entrypoint.sh
 grep -q 'cat /vault/BIP.md' services/hermes/entrypoint.sh

@@ -7,7 +7,7 @@ Runtime state lives in `/opt/data`. Bip's human-readable memory and identity liv
 
 The service runs `hermes gateway run` and keeps dashboard/API ports unpublished by
 default. Shell access is container-scoped; the Docker socket and host filesystem are not
-mounted.
+mounted. See `docs/SHELL.md` for the shell boundary and guardrail contract.
 
 ## Daily brief cron
 
