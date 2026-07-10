@@ -35,11 +35,21 @@ mcp_servers:
     supports_parallel_tool_calls: false
     tools:
       exclude:
+        - send
         - send_email
         - send_message
+        - reply
+        - create
         - create_event
+        - update
         - update_event
+        - delete
         - delete_event
+        - delete_message
+        - deploy
+        - spend
+        - charge
+        - purchase
       resources: true
       prompts: false
 
@@ -52,8 +62,19 @@ mcp_servers:
     tools:
       exclude:
         - send_message
+        - send_email
         - send
         - reply
+        - create
+        - create_event
+        - update
+        - update_event
+        - delete
+        - delete_event
         - delete_message
+        - deploy
+        - spend
+        - charge
+        - purchase
       resources: true
       prompts: false

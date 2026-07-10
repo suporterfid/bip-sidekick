@@ -118,7 +118,7 @@ Hermes reaches MCP servers by internal DNS names: `http://google-mcp:8081/mcp` f
 and `http://openwa:3000/mcp` when the optional WhatsApp profile is enabled. Google scopes
 are Gmail and Calendar read-only. OpenWA runs with `MCP_READONLY=true`. Hermes config also
 excludes send, create, update, delete, reply, deploy, and spend-style tools during the
-read-only stages.
+read-only stages. See `docs/MCP.md` for the read-only MCP contract and validator.
 
 ## Component Detail
 
