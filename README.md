@@ -103,6 +103,7 @@ human + agent loop.
 - `docs/SECURITY.md` - security posture for scopes, approvals, shell, and audit.
 - `docs/AUDIT.md` - current `/audit/actions.jsonl` hook mirror and known gaps.
 - `docs/MCP.md` - read-only MCP contract and tool-filter validation.
+- `docs/BILL_REMINDERS.md` - Gmail bill reminders and overdue detection contract.
 - `docs/SHELL.md` - container-scoped shell boundary.
 
 ## Repository Layout
