@@ -8,7 +8,9 @@ test -f services/hermes/templates/BIP.md
 test -f services/hermes/hooks/audit-jsonl.py
 test -f docs/AUDIT.md
 test -f docs/SHELL.md
+test -f docs/MCP.md
 test -f docs/adr/ADR-004-hermes-native-runtime.md
+test -f scripts/validate-readonly-mcp.py
 test -f vault/BIP.md
 test -f vault/CLAUDE.md
 
@@ -24,7 +26,9 @@ bash -n services/hermes/entrypoint.sh
 bash -n scripts/validate-hermes-migration.sh
 bash -n scripts/validate-hermes-shell-scope.sh
 python3 -m py_compile services/hermes/hooks/audit-jsonl.py
+python3 -m py_compile scripts/validate-readonly-mcp.py
 sh scripts/validate-hermes-shell-scope.sh
+python3 scripts/validate-readonly-mcp.py
 
 grep -q '^  hermes:$' docker-compose.yml
 grep -q '^    profiles: \["core"\]' docker-compose.yml
@@ -129,6 +133,10 @@ grep -q 'runtime stubs' docs/ARCHITECTURE.md
 grep -q 'owns the gateway, cron, MCP session, approval, and shell surfaces' docs/ARCHITECTURE.md
 grep -q 'Telegram and Approval Flow' docs/ARCHITECTURE.md
 grep -q 'MCP Read-only Flow' docs/ARCHITECTURE.md
+grep -q 'docs/MCP.md' README.md
+grep -q 'docs/MCP.md' docs/ARCHITECTURE.md
+grep -q 'docs/MCP.md' docs/SECURITY.md
+grep -q 'read-only MCP contract' docs/MCP.md
 grep -q 'Shell access is container-scoped inside `bip-hermes`' docs/ARCHITECTURE.md
 grep -q 'The current repository shape is Hermes-native' docs/ROADMAP.md
 grep -q 'Keep the old `agent`, `telegram-bridge`, and `brief-engine` runtime paths inactive' docs/ROADMAP.md

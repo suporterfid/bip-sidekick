@@ -22,7 +22,8 @@ not use them for commands, approvals, or scheduled briefs.
 
 MCP servers are senses during Stages 1-4. They are reachable only on the Docker internal
 network, Google OAuth scopes are read-only, OpenWA is read-only, and Hermes tool filters
-exclude send, create, update, delete, reply, deploy, and spend-style operations.
+exclude send, create, update, delete, reply, deploy, and spend-style operations. See
+`docs/MCP.md` for the read-only MCP contract.
 
 ## Shell Posture
 
