@@ -4,4 +4,5 @@ vault/daily/*.md
 !vault/daily/.gitkeep
 **/node_modules/
 **/__pycache__/
+.worktrees/
 services/openwa/OpenWA/
