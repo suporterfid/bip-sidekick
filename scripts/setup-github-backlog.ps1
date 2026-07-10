@@ -1,5 +1,6 @@
 param(
-    [string]$Repository = "suporterfid/bip-sidekick"
+    [string]$Repository = "suporterfid/bip-sidekick",
+    [string]$ProjectTitle = "Bip Sidekick Backlog"
 )
 
 $ErrorActionPreference = "Stop"
@@ -124,6 +125,143 @@ function Add-LabelsToIssue {
     Invoke-Gh -GhArguments $arguments
 }
 
+function Get-ProjectByTitle {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Owner,
+        [Parameter(Mandatory = $true)]
+        [string]$Title
+    )
+
+    $projects = Invoke-GhJson -GhArguments @(
+        "project", "list",
+        "--owner", $Owner,
+        "--format", "json"
+    )
+
+    if ($null -eq $projects -or $null -eq $projects.projects) {
+        return $null
+    }
+
+    return $projects.projects | Where-Object { $_.title -eq $Title } | Select-Object -First 1
+}
+
+function Ensure-Project {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Owner,
+        [Parameter(Mandatory = $true)]
+        [string]$Title
+    )
+
+    $project = Get-ProjectByTitle -Owner $Owner -Title $Title
+    if ($null -ne $project) {
+        return $project
+    }
+
+    Invoke-Gh -GhArguments @(
+        "project", "create",
+        "--owner", $Owner,
+        "--title", $Title
+    )
+
+    $project = Get-ProjectByTitle -Owner $Owner -Title $Title
+    if ($null -eq $project) {
+        throw "Project '$Title' was not found after creation."
+    }
+
+    return $project
+}
+
+function Ensure-ProjectField {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$ProjectNumber,
+        [Parameter(Mandatory = $true)]
+        [string]$Owner,
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Field
+    )
+
+    $fields = Invoke-GhJson -GhArguments @(
+        "project", "field-list", $ProjectNumber.ToString(),
+        "--owner", $Owner,
+        "--format", "json"
+    )
+
+    if ($null -ne $fields -and $null -ne ($fields.fields | Where-Object { $_.name -eq $Field.Name } | Select-Object -First 1)) {
+        return
+    }
+
+    $arguments = @(
+        "project", "field-create", $ProjectNumber.ToString(),
+        "--owner", $Owner,
+        "--name", $Field.Name,
+        "--data-type", $Field.Type
+    )
+
+    if ($Field.ContainsKey("Options")) {
+        $arguments += @("--single-select-options", ($Field.Options -join ","))
+    }
+
+    Invoke-Gh -GhArguments $arguments
+}
+
+function Ensure-ProjectItem {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$ProjectNumber,
+        [Parameter(Mandatory = $true)]
+        [string]$Owner,
+        [Parameter(Mandatory = $true)]
+        [string]$Url,
+        [Parameter(Mandatory = $true)]
+        [hashtable]$ExistingItemUrls
+    )
+
+    if ($ExistingItemUrls.ContainsKey($Url)) {
+        return
+    }
+
+    Invoke-Gh -GhArguments @(
+        "project", "item-add", $ProjectNumber.ToString(),
+        "--owner", $Owner,
+        "--url", $Url
+    )
+
+    $ExistingItemUrls[$Url] = $true
+}
+
+function Get-ProjectItemUrls {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$ProjectNumber,
+        [Parameter(Mandatory = $true)]
+        [string]$Owner
+    )
+
+    $items = Invoke-GhJson -GhArguments @(
+        "project", "item-list", $ProjectNumber.ToString(),
+        "--owner", $Owner,
+        "--limit", "200",
+        "--format", "json"
+    )
+
+    $urls = @{}
+    if ($null -ne $items -and $null -ne $items.items) {
+        foreach ($item in $items.items) {
+            if (-not [string]::IsNullOrWhiteSpace($item.content.url)) {
+                $urls[$item.content.url] = $true
+            }
+            elseif (-not [string]::IsNullOrWhiteSpace($item.url)) {
+                $urls[$item.url] = $true
+            }
+        }
+    }
+
+    return $urls
+}
+
 $labels = @(
     @{ Name = "backlog"; Description = "Long-lived planned work and future topics"; Color = "0E8A16" },
     @{ Name = "needs-triage"; Description = "Newly captured item that still needs sorting"; Color = "FBCA04" },
@@ -176,6 +314,13 @@ Create the repository-owned GitHub Project that mirrors the workflow documented 
 }
 
 $authStatus = (& gh auth status 2>&1) | Out-String
+$repositoryParts = $Repository.Split("/")
+if ($repositoryParts.Count -ne 2) {
+    throw "Repository must be in owner/name form. Received '$Repository'."
+}
+
+$owner = $repositoryParts[0]
+$repoName = $repositoryParts[1]
 
 foreach ($label in $labels) {
     Ensure-Label -Label $label
@@ -218,10 +363,60 @@ foreach ($title in $issuePlans.Keys) {
     Add-LabelsToIssue -Number $issueLookup[$title].number -Labels $issuePlans[$title]
 }
 
-if ($authStatus -match "read:project" -and $authStatus -match "(^|[', ])project([', ]|$)") {
-    Write-Host "Project scopes are available. Create or update 'Bip Sidekick Backlog' with gh project commands."
-    Write-Host "Use docs/GITHUB_BACKLOG.md for the exact field layout and saved views."
+if ($authStatus -match "(^|[', ])project([', ]|$)") {
+    $project = Ensure-Project -Owner $owner -Title $ProjectTitle
+    $projectFields = @(
+        @{ Name = "Priority"; Type = "SINGLE_SELECT"; Options = @("High", "Medium", "Low") },
+        @{ Name = "Area"; Type = "SINGLE_SELECT"; Options = @("Runtime", "Briefing", "Governance", "Integrations", "Docs") },
+        @{ Name = "Effort"; Type = "SINGLE_SELECT"; Options = @("S", "M", "L") },
+        @{ Name = "Target"; Type = "DATE" }
+    )
+
+    foreach ($field in $projectFields) {
+        Ensure-ProjectField -ProjectNumber $project.number -Owner $owner -Field $field
+    }
+
+    Invoke-Gh -GhArguments @(
+        "project", "link", $project.number.ToString(),
+        "--owner", $owner,
+        "--repo", "$owner/$repoName"
+    )
+
+    $projectReadme = @"
+Repository backlog for $Repository.
+
+Suggested saved views:
+- Inbox: label:"needs-triage"
+- Backlog: label:"backlog" -label:"next-up"
+- Next: label:"next-up"
+
+The GitHub CLI manages project, fields, repository link, and items. Saved views are finalized in the GitHub web UI when the API does not expose view creation.
+"@
+
+    Invoke-Gh -GhArguments @(
+        "project", "edit", $project.number.ToString(),
+        "--owner", $owner,
+        "--description", "Repository backlog for $Repository",
+        "--readme", $projectReadme
+    )
+
+    $openBacklogIssues = Invoke-GhJson -GhArguments @(
+        "issue", "list",
+        "--repo", $Repository,
+        "--state", "open",
+        "--label", "backlog",
+        "--limit", "200",
+        "--json", "number,title,url"
+    )
+
+    $existingItemUrls = Get-ProjectItemUrls -ProjectNumber $project.number -Owner $owner
+    foreach ($issue in $openBacklogIssues) {
+        Ensure-ProjectItem -ProjectNumber $project.number -Owner $owner -Url $issue.url -ExistingItemUrls $existingItemUrls
+    }
+
+    Write-Host "Project ready: $($project.url)"
+    Write-Host "Open backlog issues added: $($openBacklogIssues.Count)"
 }
 else {
-    Write-Warning "GitHub Project scopes are missing. Run 'gh auth refresh -s read:project -s project' and rerun this script when you want to bootstrap the Project."
+    Write-Warning "GitHub Project scope is missing. Run 'gh auth refresh -s read:project -s project' and rerun this script when you want to bootstrap the Project."
 }

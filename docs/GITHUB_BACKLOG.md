@@ -1,8 +1,10 @@
 # GitHub Backlog Workflow
 
 This repository uses GitHub Issues as the canonical backlog for future topics. The preferred
-shape is a GitHub Project named `Bip Sidekick Backlog`, but the repository must still work
-well even before project scopes are granted to the local GitHub CLI token.
+shape is the GitHub Project
+[`Bip Sidekick Backlog`](https://github.com/users/suporterfid/projects/3), but the
+repository must still work well even before project scopes are granted to the local GitHub
+CLI token.
 
 ## Source of truth
 
@@ -38,16 +40,18 @@ label taxonomy above instead of creating duplicates.
 
 ## GitHub Project bootstrap
 
-The local `gh` session currently needs the `read:project` and `project` scopes before it can
-create or manage a Project. Once those scopes are granted, run:
+The local `gh` session needs the `project` scope to create or manage a Project. If that
+scope is missing, refresh the token before running the bootstrapper:
 
 ```powershell
 gh auth refresh -s read:project -s project
 powershell -ExecutionPolicy Bypass -File .\scripts\setup-github-backlog.ps1
 ```
 
-After the auth refresh, create or verify a project named `Bip Sidekick Backlog` and add
-these custom fields:
+The script creates or verifies `Bip Sidekick Backlog`, links `suporterfid/bip-sidekick`,
+normalizes backlog labels, creates the project fields, and adds open `backlog` issues.
+
+Project fields:
 
 - `Priority` as `SINGLE_SELECT` with `High`, `Medium`, `Low`
 - `Area` as `SINGLE_SELECT` with `Runtime`, `Briefing`, `Governance`, `Integrations`, `Docs`
@@ -60,5 +64,6 @@ Suggested saved views:
 - `Backlog`: filter `label:"backlog" -label:"next-up"`
 - `Next`: filter `label:"next-up"`
 
-The CLI can create the project and fields, but saved views are still easiest to finalize in
-the GitHub web UI.
+The CLI manages the project, fields, repository link, project README, and items. Saved
+views are still easiest to finalize in the GitHub web UI when view creation is unavailable
+through the local CLI/API surface.
