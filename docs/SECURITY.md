@@ -14,6 +14,16 @@ changes the world is a gated exception.
    `/audit/actions.jsonl` can record proposal, approval, denial, execution, and outcome.
    See `docs/AUDIT.md` for the Hermes hook mirror and current unsupported fields.
 
+## Runtime Boundaries
+
+Hermes is the only active agent runtime. The historical `agent`, `telegram-bridge`, and
+`brief-engine` service directories remain as migration context, but the current stack does
+not use them for commands, approvals, or scheduled briefs.
+
+MCP servers are senses during Stages 1-4. They are reachable only on the Docker internal
+network, Google OAuth scopes are read-only, OpenWA is read-only, and Hermes tool filters
+exclude send, create, update, delete, reply, deploy, and spend-style operations.
+
 ## Shell Posture
 
 Shell is allowed inside the Hermes container because Bip needs operational flexibility.
@@ -28,6 +38,13 @@ container-scoped shell contract and validation target.
 
 Host-level deployment actions belong in Stage 5 as explicit hands with least-privilege
 credentials, manual approval, and audit.
+
+## Audit Caveats
+
+`/audit/actions.jsonl` is the governance mirror, not a replacement for proving each future
+hand end to end. `unsupported_fields` in the audit record identifies correlation data that
+Hermes did not expose to a hook payload. Do not attach a Stage 5 hand until the approval
+request, approver decision, execution result, and outcome can be reconstructed.
 
 ## Credentials
 
@@ -45,5 +62,7 @@ credentials, manual approval, and audit.
 - [ ] Hermes manual approvals are verified.
 - [ ] Cron deny behavior is verified.
 - [ ] `/audit/actions.jsonl` posture is known.
+- [ ] `unsupported_fields` is acceptable for the intended hand, or the hand remains
+      disabled.
 - [ ] OpenWA uses a spare number and `MCP_READONLY=true`.
 - [ ] Vault git repo is private.

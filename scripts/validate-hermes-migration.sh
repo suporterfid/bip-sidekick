@@ -8,6 +8,7 @@ test -f services/hermes/templates/BIP.md
 test -f services/hermes/hooks/audit-jsonl.py
 test -f docs/AUDIT.md
 test -f docs/SHELL.md
+test -f docs/adr/ADR-004-hermes-native-runtime.md
 test -f vault/BIP.md
 test -f vault/CLAUDE.md
 
@@ -119,6 +120,26 @@ grep -q 'Cron jobs must not use shell to send, deploy, spend, delete, or mutate'
 grep -q 'manual approval' docs/SHELL.md
 grep -q 'docs/SHELL.md' docs/SECURITY.md
 grep -q 'docs/SHELL.md' services/hermes/README.md
+grep -q 'ADR-004 records the runtime decision' README.md
+grep -q 'bash scripts/validate-hermes-migration.sh' README.md
+grep -q 'docker compose --profile core --profile openwa config' README.md
+grep -q 'docs/adr/ADR-004-hermes-native-runtime.md' README.md
+grep -q 'are historical' docs/ARCHITECTURE.md
+grep -q 'runtime stubs' docs/ARCHITECTURE.md
+grep -q 'owns the gateway, cron, MCP session, approval, and shell surfaces' docs/ARCHITECTURE.md
+grep -q 'Telegram and Approval Flow' docs/ARCHITECTURE.md
+grep -q 'MCP Read-only Flow' docs/ARCHITECTURE.md
+grep -q 'Shell access is container-scoped inside `bip-hermes`' docs/ARCHITECTURE.md
+grep -q 'The current repository shape is Hermes-native' docs/ROADMAP.md
+grep -q 'Keep the old `agent`, `telegram-bridge`, and `brief-engine` runtime paths inactive' docs/ROADMAP.md
+grep -q 'Runtime Boundaries' docs/SECURITY.md
+grep -q 'Audit Caveats' docs/SECURITY.md
+grep -q 'Use Hermes as Bip.*native runtime' docs/adr/ADR-004-hermes-native-runtime.md
+grep -q 'Docs, Makefile targets, and validation scripts should describe Hermes as the current' docs/adr/ADR-004-hermes-native-runtime.md
+grep -q 'primary command, approval, or scheduling path' docs/adr/ADR-004-hermes-native-runtime.md
+grep -q 'Do not add agent command handling here' services/agent/README.md
+grep -q 'intentionally inactive in Compose' services/telegram-bridge/README.md
+grep -q 'intentionally inactive in Compose' services/brief-engine/README.md
 
 grep -q 'cp /opt/bip/templates/BIP.md /vault/BIP.md' services/hermes/entrypoint.sh
 grep -q 'cat /vault/BIP.md' services/hermes/entrypoint.sh

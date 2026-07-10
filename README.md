@@ -15,26 +15,27 @@ flowchart TD
     TG[Telegram] --> H[Hermes gateway]
     CRON[Hermes cron: daily brief] --> H
     H --> V["vault: BIP STATUS BACKLOG daily"]
-    H --> GM[google-mcp readonly]
-    H --> OW[openwa readonly]
+    H --> GM["google-mcp:8081 readonly"]
+    H --> OW["openwa:3000 readonly optional"]
     H --> AP["manual approvals"]
     AP --> TG
     H --> AU["audit/actions.jsonl mirror"]
 ```
 
-Hermes is the brain, Telegram gateway, cron runner, MCP client, and approval surface.
-`/vault` remains Bip's durable memory and the human-readable source of truth.
+Hermes is the brain, Telegram gateway, cron runner, MCP client, shell context, and approval
+surface. `/vault` remains Bip's durable memory and the human-readable source of truth.
+ADR-004 records the runtime decision.
 
 ## Components
 
-| Service | Role | Acts? | Notes |
-|---|---|---|---|
-| `hermes` | Brain, Telegram gateway, cron, approvals | only via manual approval | Built from `services/hermes/` |
-| `vault-sync` | Syncs the Obsidian vault git repo | no | Keeps Markdown memory portable |
-| `google-mcp` | Calendar + Gmail senses | no | Read-only Google scopes |
-| `openwa` | WhatsApp triage | no | Optional profile, `MCP_READONLY=true` |
-| `vault` volume | `BIP.md`, `STATUS.md`, `BACKLOG.md`, `daily/` | n/a | Shared human/agent memory |
-| `audit` volume | Approval/action mirror | n/a | JSONL contract for governed actions |
+| Service | Profile | Role | Acts? | Notes |
+|---|---|---|---|---|
+| `hermes` | `core` | Brain, Telegram gateway, cron, approvals | only via manual approval | Built from `services/hermes/`; no public port by default |
+| `vault-sync` | `core` | Syncs the Obsidian vault git repo | no | Uses the small utility image under `services/agent/` |
+| `google-mcp` | `core` | Calendar + Gmail senses | no | Read-only Google scopes over the internal network |
+| `openwa` | `openwa` | WhatsApp triage | no | Optional profile, `MCP_READONLY=true` |
+| `vault` volume | n/a | `BIP.md`, `STATUS.md`, `BACKLOG.md`, `daily/` | n/a | Shared human/agent memory |
+| `audit` volume | n/a | Approval/action mirror | n/a | JSONL contract for governed actions |
 
 ## Quickstart
 
@@ -49,11 +50,14 @@ cp .env.example .env
 make up-core
 ```
 
-Then verify the gate posture:
+Fill the `.env` values for Telegram, the provider key, the private vault remote, and
+read-only Google OAuth before pointing the stack at real accounts. Then verify the gate
+posture:
 
 ```bash
 make up-gate
 make logs SVC=hermes
+make audit
 ```
 
 WhatsApp triage remains optional:
@@ -61,6 +65,13 @@ WhatsApp triage remains optional:
 ```bash
 make up-openwa
 make logs SVC=openwa
+```
+
+For a static repo check before opening a PR, run:
+
+```bash
+bash scripts/validate-hermes-migration.sh
+docker compose --profile core --profile openwa config
 ```
 
 ## Governance
@@ -71,6 +82,8 @@ make logs SVC=openwa
 - Cron deny: scheduled briefs must not act.
 - Audit posture: actions must be mirrored to `/audit/actions.jsonl` before real hands are
   enabled.
+- Shell posture: shell is available only inside the Hermes container boundary documented
+  in `docs/SHELL.md`.
 
 Stage 5 send/deploy/spend tools are tracked separately. If a hand cannot be approval-gated
 and audited, do not attach it.
@@ -81,6 +94,15 @@ Long-lived future work is tracked in GitHub Issues, not only in local Markdown. 
 `Backlog item` issue form for new topics, follow the label taxonomy in
 `docs/GITHUB_BACKLOG.md`, and keep `vault/BACKLOG.md` as the short working shortlist for the
 human + agent loop.
+
+## Documentation Map
+
+- `docs/adr/ADR-004-hermes-native-runtime.md` - why Hermes is the native runtime.
+- `docs/ARCHITECTURE.md` - deployment topology and runtime flows.
+- `docs/ROADMAP.md` - staged build order and gates.
+- `docs/SECURITY.md` - security posture for scopes, approvals, shell, and audit.
+- `docs/AUDIT.md` - current `/audit/actions.jsonl` hook mirror and known gaps.
+- `docs/SHELL.md` - container-scoped shell boundary.
 
 ## Repository Layout
 
