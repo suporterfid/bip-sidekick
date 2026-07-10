@@ -22,7 +22,7 @@ surface must be verified before real accounts or write-capable hands are attache
 ## Stage 2 - Daily brief
 
 - Configure Hermes cron from `BRIEF_CRON` and `TZ`.
-- Read Google MCP with read-only scopes.
+- Read Google MCP with read-only scopes; follow [`docs/CALENDAR.md`](CALENDAR.md) for calendar behavior.
 - Read `STATUS.md`, `BACKLOG.md`, and recent daily notes.
 - Write `vault/daily/YYYY-MM-DD.md`.
 - Send the same brief to Telegram.
