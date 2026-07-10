@@ -9,8 +9,10 @@ test -f services/hermes/hooks/audit-jsonl.py
 test -f docs/AUDIT.md
 test -f docs/SHELL.md
 test -f docs/MCP.md
+test -f docs/BILL_REMINDERS.md
 test -f docs/adr/ADR-004-hermes-native-runtime.md
 test -f scripts/validate-readonly-mcp.py
+test -f scripts/validate-bill-reminders.py
 test -f vault/BIP.md
 test -f vault/CLAUDE.md
 
@@ -27,8 +29,10 @@ bash -n scripts/validate-hermes-migration.sh
 bash -n scripts/validate-hermes-shell-scope.sh
 python3 -m py_compile services/hermes/hooks/audit-jsonl.py
 python3 -m py_compile scripts/validate-readonly-mcp.py
+python3 -m py_compile scripts/validate-bill-reminders.py
 sh scripts/validate-hermes-shell-scope.sh
 python3 scripts/validate-readonly-mcp.py
+python3 scripts/validate-bill-reminders.py
 
 grep -q '^  hermes:$' docker-compose.yml
 grep -q '^    profiles: \["core"\]' docker-compose.yml

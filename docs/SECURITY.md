@@ -25,6 +25,10 @@ network, Google OAuth scopes are read-only, OpenWA is read-only, and Hermes tool
 exclude send, create, update, delete, reply, deploy, and spend-style operations. See
 `docs/MCP.md` for the read-only MCP contract.
 
+Bill reminders are advisory-only. They may read Gmail through read-only MCP scopes and
+surface upcoming or overdue items, but they must not pay, click payment links, mark mail
+read, delete mail, contact vendors, or mutate accounts. See `docs/BILL_REMINDERS.md`.
+
 ## Shell Posture
 
 Shell is allowed inside the Hermes container because Bip needs operational flexibility.

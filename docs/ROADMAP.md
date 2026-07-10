@@ -48,6 +48,14 @@ posture is documented.
 
 **DoD:** WhatsApp context can influence the brief, but no WhatsApp sends are available.
 
+## Stage 4a - Gmail bill reminders
+
+- Read Gmail bill, invoice, due-date, confirmation, and overdue signals.
+- Keep reminders advisory-only and deduplicated.
+- Surface upcoming and overdue items in the daily brief without paying or mutating accounts.
+
+**DoD:** bill reminders can inform the brief, but payment and account changes remain absent.
+
 ## Stage 5 - Gated hands
 
 - Add each send/deploy/spend tool as its own issue.
