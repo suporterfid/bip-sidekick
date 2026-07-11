@@ -19,6 +19,9 @@ Stage 5 write-capable hands must be separate tools with least-privilege credenti
 manual Telegram approval, and `/audit/actions.jsonl` coverage. Do not widen MCP scopes or
 remove mutation-tool filters to make a write hand work.
 
+GitHub review is documented separately in [`docs/GITHUB_REVIEW.md`](GITHUB_REVIEW.md) and is
+not attached to the current MCP stack.
+
 Validate this contract with:
 
 ```bash
