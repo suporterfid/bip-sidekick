@@ -26,6 +26,9 @@ exclude send, create, update, delete, reply, deploy, and spend-style operations.
 `docs/MCP.md` for the read-only MCP contract. Calendar behavior is advisory-only and follows
 [`docs/CALENDAR.md`](CALENDAR.md); calendar writes remain outside Stages 1-4.
 
+GitHub review follows [`docs/GITHUB_REVIEW.md`](GITHUB_REVIEW.md): the pilot is allowlisted,
+read-only, transient by default, and has no shell fallback.
+
 Bill reminders are advisory-only. They may read Gmail through read-only MCP scopes and
 surface upcoming or overdue items, but they must not pay, click payment links, mark mail
 read, delete mail, contact vendors, or mutate accounts. See `docs/BILL_REMINDERS.md`.
