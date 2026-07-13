@@ -101,8 +101,10 @@ human + agent loop.
 - `docs/ARCHITECTURE.md` - deployment topology and runtime flows.
 - `docs/ROADMAP.md` - staged build order and gates.
 - `docs/SECURITY.md` - security posture for scopes, approvals, shell, and audit.
+- `docs/CALENDAR.md` - family-calendar read-only workflow and Cal.diy decision.
 - `docs/AUDIT.md` - current `/audit/actions.jsonl` hook mirror and known gaps.
 - `docs/MCP.md` - read-only MCP contract and tool-filter validation.
+- `docs/GITHUB_REVIEW.md` - read-only private-repository review pilot and patch boundary.
 - `docs/BILL_REMINDERS.md` - Gmail bill reminders and overdue detection contract.
 - `docs/SHELL.md` - container-scoped shell boundary.
 
